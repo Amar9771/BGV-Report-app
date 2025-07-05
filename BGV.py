@@ -145,7 +145,6 @@ st.markdown("""
 with st.container():
     col1, col2, col3 = st.columns([1, 5, 1])
     with col2:
-        st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Logo_BGV.svg/1280px-Logo_BGV.svg.png", width=120)
         st.markdown("<h2 style='text-align: center; color: #2e7bcf;'>📋 BGV Final TAT Report Generator</h2>", unsafe_allow_html=True)
 
 # 📅 Sidebar Instructions
