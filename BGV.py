@@ -4,9 +4,10 @@ from datetime import datetime, timedelta
 import io
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
+from streamlit_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 # ----------------------------
-# 📅 Public Holidays
+# 🗕 Public Holidays
 # ----------------------------
 public_holidays = pd.to_datetime([
     "2025-01-26", "2025-08-15", "2025-10-02", "2025-12-25"
@@ -137,7 +138,24 @@ st.markdown("""
 
 st.title("📋 BGV Final TAT Report Generator")
 
-# 📥 Template Download
+# 📅 Sidebar Instructions
+with st.sidebar:
+    st.markdown("## 📋 Instructions")
+    st.markdown("""
+    1. **Download** the BGV Excel template.
+    2. **Fill in** all required fields using **DD-MMM-YYYY** date format.
+    3. **Do not** alter column headers.
+    4. Upload to generate TAT summary.
+
+    ---
+    - 🟢 Green: Within TAT
+    - 🔴 Red: Exceeded
+    - 🟡 Yellow: Pending
+    """)
+    st.markdown("### 📧 Contact")
+    st.info("For issues, contact MIS support team.")
+
+# 📅 Template Download
 with st.expander("⬇️ Download Excel Template", expanded=True):
     template_columns = [
         "Sl.No", "CandidateCode", "Candidate Name",
@@ -149,8 +167,8 @@ with st.expander("⬇️ Download Excel Template", expanded=True):
     template_df.to_excel(buffer, index=False)
     st.download_button("📄 Download Template", buffer.getvalue(), file_name="BGV_Template.xlsx")
 
-# 📤 Upload + Report Generation
-st.subheader("📤 Upload Filled Template")
+# 📄 Upload + Report Generation
+st.subheader("📄 Upload Filled Template")
 uploaded_file = st.file_uploader("Upload the filled Excel file", type="xlsx")
 
 if uploaded_file:
@@ -164,7 +182,16 @@ if uploaded_file:
             st.success("✅ Report generated successfully!")
 
             st.subheader("🔍 Preview Report")
-            st.dataframe(result_df, use_container_width=True)
+            gb = GridOptionsBuilder.from_dataframe(result_df)
+            gb.configure_default_column(filter=True, sortable=True, resizable=True)
+            gb.configure_grid_options(domLayout='normal')
+            grid_options = gb.build()
+            AgGrid(
+                result_df,
+                gridOptions=grid_options,
+                update_mode=GridUpdateMode.NO_UPDATE,
+                height=400
+            )
 
             excel_data = style_excel(result_df)
             st.download_button("📁 Download Final Report", excel_data, file_name="BGV_Final_TAT_Report.xlsx")
