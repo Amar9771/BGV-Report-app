@@ -4,10 +4,10 @@ from datetime import datetime, timedelta
 import io
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
-from st_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
+from streamlit_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 # ----------------------------
-# 📅 Public Holidays
+# 📅 Public Holidays (customize here)
 # ----------------------------
 public_holidays = pd.to_datetime([
     "2025-01-26", "2025-08-15", "2025-10-02", "2025-12-25"
@@ -74,8 +74,8 @@ def style_excel(df):
         sheet = writer.sheets['BGV_Report']
 
         header_font = Font(bold=True, color="FFFFFF")
-        header_fill = PatternFill(start_color="003366", end_color="003366", fill_type="solid")
-        alt_fill = PatternFill(start_color="F7F7F7", end_color="F7F7F7", fill_type="solid")
+        header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+        alt_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
         center_align = Alignment(horizontal='center', vertical='center')
 
         green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
@@ -120,40 +120,32 @@ def style_excel(df):
 # ----------------------------
 # 🌐 Streamlit UI
 # ----------------------------
-st.set_page_config("BGV Report Generator", layout="wide", page_icon="📋")
+st.set_page_config("BGV Report Generator", layout="wide", page_icon="📊")
 st.markdown("""
     <style>
-    .main {background-color: #f9f9f9;}
-    .block-container {padding-top: 2rem; padding-bottom: 2rem;}
-    .css-18e3th9 {background-color: #ffffff; padding: 2rem; border-radius: 12px; box-shadow: 0 0 20px rgba(0,0,0,0.05);}
-    .css-1d391kg h1 {color: #003366;}
+        .main { background-color: #f5f7fa; }
+        .block-container { padding-top: 2rem; }
+        .stButton>button { font-size: 16px; border-radius: 8px; background-color: #2e7bcf; color: white; padding: 8px 16px; }
+        .stButton>button:hover { background-color: #1b5eaa; }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("📋 BGV Final TAT Report Generator")
-st.markdown("Generate professional reports with SLA compliance in one click.")
 
-with st.expander("📌 Instructions", expanded=False):
-    st.markdown("""
-    **Step 1**: Download the Excel template  
-    **Step 2**: Fill out the candidate data  
-    **Step 3**: Upload the filled file to generate report  
-    **Note**: All dates must be in valid Excel date format.
-    """)
+with st.expander("📥 Download Excel Template", expanded=True):
+    template_columns = [
+        "Sl.No", "CandidateCode", "Candidate Name",
+        "BWR_Date of Submission", "BWR_TAT Due On", "BWR_Reinitiated", "BWR_Date of Report Received",
+        "BGV_Received On", "BGV_TAT Due On", "BGV_Reinitiated", "BGV_Final Dispatch"
+    ]
+    template_df = pd.DataFrame(columns=template_columns)
+    template_buf = io.BytesIO()
+    template_df.to_excel(template_buf, index=False)
+    st.download_button("⬇️ Download Template", template_buf.getvalue(), file_name="BGV_Template.xlsx")
 
-template_columns = [
-    "Sl.No", "CandidateCode", "Candidate Name",
-    "BWR_Date of Submission", "BWR_TAT Due On", "BWR_Reinitiated", "BWR_Date of Report Received",
-    "BGV_Received On", "BGV_TAT Due On", "BGV_Reinitiated", "BGV_Final Dispatch"
-]
+st.markdown("---")
 
-st.subheader("📥 Step 1: Download Template")
-template_df = pd.DataFrame(columns=template_columns)
-template_buf = io.BytesIO()
-template_df.to_excel(template_buf, index=False)
-st.download_button("⬇️ Download Excel Template", template_buf.getvalue(), file_name="BGV_Template.xlsx")
-
-st.subheader("📤 Step 2: Upload Filled File")
+st.subheader("📤 Upload Filled Template")
 uploaded_file = st.file_uploader("Upload the filled BGV Excel file", type="xlsx")
 
 if uploaded_file:
@@ -166,17 +158,17 @@ if uploaded_file:
             result_df = process_report(df)
             st.success("✅ Report generated successfully!")
 
-            st.subheader("📊 Step 3: Preview Report")
-            gb = GridOptionsBuilder.from_dataframe(result_df)
-            gb.configure_default_column(filter=True, sortable=True, resizable=True)
-            grid_options = gb.build()
-            AgGrid(
-                result_df,
-                gridOptions=grid_options,
-                update_mode=GridUpdateMode.NO_UPDATE,
-                fit_columns_on_grid_load=True,
-                height=450
-            )
+            with st.expander("🔍 Preview Report (Search & Filter)", expanded=True):
+                gb = GridOptionsBuilder.from_dataframe(result_df)
+                gb.configure_default_column(filter=True, sortable=True, resizable=True)
+                gb.configure_grid_options(domLayout='normal')
+                grid_options = gb.build()
+                AgGrid(
+                    result_df,
+                    gridOptions=grid_options,
+                    update_mode=GridUpdateMode.NO_UPDATE,
+                    height=400
+                )
 
             styled_file = style_excel(result_df)
             st.download_button("📁 Download Final Excel Report", styled_file, file_name="BGV_Final_TAT_Report.xlsx")
