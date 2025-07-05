@@ -4,7 +4,6 @@ from datetime import datetime, timedelta
 import io
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
-from streamlit_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 # ----------------------------
 # 🗕 Public Holidays
@@ -182,16 +181,7 @@ if uploaded_file:
             st.success("✅ Report generated successfully!")
 
             st.subheader("🔍 Preview Report")
-            gb = GridOptionsBuilder.from_dataframe(result_df)
-            gb.configure_default_column(filter=True, sortable=True, resizable=True)
-            gb.configure_grid_options(domLayout='normal')
-            grid_options = gb.build()
-            AgGrid(
-                result_df,
-                gridOptions=grid_options,
-                update_mode=GridUpdateMode.NO_UPDATE,
-                height=400
-            )
+            st.dataframe(result_df, use_container_width=True)
 
             excel_data = style_excel(result_df)
             st.download_button("📁 Download Final Report", excel_data, file_name="BGV_Final_TAT_Report.xlsx")
