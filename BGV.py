@@ -4,17 +4,16 @@ from datetime import datetime, timedelta
 import io
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils import get_column_letter
-from streamlit_aggrid import AgGrid, GridOptionsBuilder, GridUpdateMode
 
 # ----------------------------
-# 📅 Public Holidays (customize here)
+# 📅 Public Holidays
 # ----------------------------
 public_holidays = pd.to_datetime([
     "2025-01-26", "2025-08-15", "2025-10-02", "2025-12-25"
 ])
 
 # ----------------------------
-# 🧠 Utility Functions
+# 🧠 Helper Functions
 # ----------------------------
 def is_working_day(date):
     if date.weekday() == 6:
@@ -76,39 +75,37 @@ def style_excel(df):
         header_font = Font(bold=True, color="FFFFFF")
         header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
         alt_fill = PatternFill(start_color="F2F2F2", end_color="F2F2F2", fill_type="solid")
-        center_align = Alignment(horizontal='center', vertical='center')
-
         green_fill = PatternFill(start_color="C6EFCE", end_color="C6EFCE", fill_type="solid")
         red_fill = PatternFill(start_color="FFC7CE", end_color="FFC7CE", fill_type="solid")
         yellow_fill = PatternFill(start_color="FFEB9C", end_color="FFEB9C", fill_type="solid")
+        center = Alignment(horizontal='center', vertical='center')
 
         for col_num, col in enumerate(df.columns, 1):
             cell = sheet.cell(row=1, column=col_num)
             cell.font = header_font
             cell.fill = header_fill
-            cell.alignment = center_align
+            cell.alignment = center
 
         remarks_col = df.columns.get_loc("Remarks") + 1
         due_col = df.columns.get_loc("Due Days") + 1
 
         for row in range(2, sheet.max_row + 1):
-            remark_value = sheet.cell(row=row, column=remarks_col).value
-            row_fill = None
-            if remark_value == "Within TAT":
-                row_fill = green_fill
-            elif remark_value == "Exceeded":
-                row_fill = red_fill
-            elif remark_value == "Pending":
-                row_fill = yellow_fill
+            remark = sheet.cell(row=row, column=remarks_col).value
+            color = None
+            if remark == "Within TAT":
+                color = green_fill
+            elif remark == "Exceeded":
+                color = red_fill
+            elif remark == "Pending":
+                color = yellow_fill
 
             for col in range(1, sheet.max_column + 1):
                 cell = sheet.cell(row=row, column=col)
-                if row % 2 == 0 and not row_fill:
+                if row % 2 == 0 and not color:
                     cell.fill = alt_fill
-                if col == remarks_col or col == due_col:
-                    if row_fill:
-                        cell.fill = row_fill
-                cell.alignment = center_align
+                if col in [remarks_col, due_col] and color:
+                    cell.fill = color
+                cell.alignment = center
 
         for col_num, col in enumerate(df.columns, 1):
             max_len = max(df[col].astype(str).map(len).max(), len(col))
@@ -123,30 +120,38 @@ def style_excel(df):
 st.set_page_config("BGV Report Generator", layout="wide", page_icon="📊")
 st.markdown("""
     <style>
-        .main { background-color: #f5f7fa; }
+        .main { background-color: #f9fafc; }
         .block-container { padding-top: 2rem; }
-        .stButton>button { font-size: 16px; border-radius: 8px; background-color: #2e7bcf; color: white; padding: 8px 16px; }
-        .stButton>button:hover { background-color: #1b5eaa; }
+        .stButton>button {
+            font-size: 16px;
+            border-radius: 8px;
+            background-color: #2e7bcf;
+            color: white;
+            padding: 8px 16px;
+        }
+        .stButton>button:hover {
+            background-color: #1b5eaa;
+        }
     </style>
 """, unsafe_allow_html=True)
 
 st.title("📋 BGV Final TAT Report Generator")
 
-with st.expander("📥 Download Excel Template", expanded=True):
+# 📥 Template Download
+with st.expander("⬇️ Download Excel Template", expanded=True):
     template_columns = [
         "Sl.No", "CandidateCode", "Candidate Name",
         "BWR_Date of Submission", "BWR_TAT Due On", "BWR_Reinitiated", "BWR_Date of Report Received",
         "BGV_Received On", "BGV_TAT Due On", "BGV_Reinitiated", "BGV_Final Dispatch"
     ]
     template_df = pd.DataFrame(columns=template_columns)
-    template_buf = io.BytesIO()
-    template_df.to_excel(template_buf, index=False)
-    st.download_button("⬇️ Download Template", template_buf.getvalue(), file_name="BGV_Template.xlsx")
+    buffer = io.BytesIO()
+    template_df.to_excel(buffer, index=False)
+    st.download_button("📄 Download Template", buffer.getvalue(), file_name="BGV_Template.xlsx")
 
-st.markdown("---")
-
+# 📤 Upload + Report Generation
 st.subheader("📤 Upload Filled Template")
-uploaded_file = st.file_uploader("Upload the filled BGV Excel file", type="xlsx")
+uploaded_file = st.file_uploader("Upload the filled Excel file", type="xlsx")
 
 if uploaded_file:
     try:
@@ -158,19 +163,10 @@ if uploaded_file:
             result_df = process_report(df)
             st.success("✅ Report generated successfully!")
 
-            with st.expander("🔍 Preview Report (Search & Filter)", expanded=True):
-                gb = GridOptionsBuilder.from_dataframe(result_df)
-                gb.configure_default_column(filter=True, sortable=True, resizable=True)
-                gb.configure_grid_options(domLayout='normal')
-                grid_options = gb.build()
-                AgGrid(
-                    result_df,
-                    gridOptions=grid_options,
-                    update_mode=GridUpdateMode.NO_UPDATE,
-                    height=400
-                )
+            st.subheader("🔍 Preview Report")
+            st.dataframe(result_df, use_container_width=True)
 
-            styled_file = style_excel(result_df)
-            st.download_button("📁 Download Final Excel Report", styled_file, file_name="BGV_Final_TAT_Report.xlsx")
+            excel_data = style_excel(result_df)
+            st.download_button("📁 Download Final Report", excel_data, file_name="BGV_Final_TAT_Report.xlsx")
     except Exception as e:
         st.error(f"⚠️ Error processing file: {e}")
