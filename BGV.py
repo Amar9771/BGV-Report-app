@@ -162,8 +162,8 @@ with st.sidebar:
     - 🔴 Red: Exceeded
     - 🟡 Yellow: Pending
     """)
-    st.markdown("### 📧 Contact")
-    st.info("For issues, contact MIS support team.")
+    st.markdown("### 📧 HR Team ")
+    st.info("Have a Good Day")
 
 # 📅 Template Download
 with st.expander("⬇️ Download Excel Template", expanded=True):
