@@ -120,7 +120,7 @@ def style_excel(df):
 st.set_page_config("BGV Report Generator", layout="wide", page_icon="📊")
 st.markdown("""
     <style>
-        .main { background-color: #f9fafc; }
+        .main { background-color: #eef4fa; }
         .block-container { padding-top: 2rem; }
         .stButton>button {
             font-size: 16px;
@@ -132,10 +132,21 @@ st.markdown("""
         .stButton>button:hover {
             background-color: #1b5eaa;
         }
+        .title-container {
+            text-align: center;
+            padding: 1rem;
+        }
+        .logo {
+            height: 80px;
+        }
     </style>
 """, unsafe_allow_html=True)
 
-st.title("📋 BGV Final TAT Report Generator")
+with st.container():
+    col1, col2, col3 = st.columns([1, 5, 1])
+    with col2:
+        st.image("https://upload.wikimedia.org/wikipedia/commons/thumb/a/ae/Logo_BGV.svg/1280px-Logo_BGV.svg.png", width=120)
+        st.markdown("<h2 style='text-align: center; color: #2e7bcf;'>📋 BGV Final TAT Report Generator</h2>", unsafe_allow_html=True)
 
 # 📅 Sidebar Instructions
 with st.sidebar:
