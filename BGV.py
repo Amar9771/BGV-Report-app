@@ -16,12 +16,8 @@ public_holidays = pd.to_datetime([
 # 🧠 Helper Functions
 # ----------------------------
 def is_working_day(date):
-    if date.weekday() == 6:
+    if date.weekday() >= 5:  # Saturday (5) or Sunday (6)
         return False
-    if date.weekday() == 5:
-        week = (date.day - 1) // 7 + 1
-        if week in [2, 4]:
-            return False
     if date in public_holidays:
         return False
     return True
@@ -174,7 +170,12 @@ with st.expander("⬇️ Download Excel Template", expanded=True):
     template_df = pd.DataFrame(columns=template_columns)
     buffer = io.BytesIO()
     template_df.to_excel(buffer, index=False)
-    st.download_button("📄 Download Template", buffer.getvalue(), file_name="BGV_Template.xlsx")
+    st.download_button(
+        "📄 Download Template",
+        buffer.getvalue(),
+        file_name="BGV_Template.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
 
 # 📄 Upload + Report Generation
 st.subheader("📄 Upload Filled Template")
@@ -183,6 +184,10 @@ uploaded_file = st.file_uploader("Upload the filled Excel file", type="xlsx")
 if uploaded_file:
     try:
         df = pd.read_excel(uploaded_file)
+        if df.empty:
+            st.warning("⚠️ Uploaded file is empty.")
+            st.stop()
+
         missing_cols = [col for col in template_columns if col not in df.columns]
         if missing_cols:
             st.error(f"❌ Missing columns: {', '.join(missing_cols)}")
@@ -194,6 +199,11 @@ if uploaded_file:
             st.dataframe(result_df, use_container_width=True)
 
             excel_data = style_excel(result_df)
-            st.download_button("📁 Download Final Report", excel_data, file_name="BGV_Final_TAT_Report.xlsx")
+            st.download_button(
+                "📁 Download Final Report",
+                excel_data,
+                file_name="BGV_Final_TAT_Report.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
     except Exception as e:
         st.error(f"⚠️ Error processing file: {e}")
