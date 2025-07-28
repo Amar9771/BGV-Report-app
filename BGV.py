@@ -33,7 +33,7 @@ def add_working_days(start_date, n):
 
 def calculate_due(row):
     if pd.notnull(row['BGV_Reinitiated']):
-        return add_working_days(row['BGV_Reinitiated'], 8)
+        return add_working_days(row['BGV_Reinitiated'], 15)
     elif pd.notnull(row['BGV_Received On']):
         return add_working_days(row['BGV_Received On'], 15)
     return pd.NaT
